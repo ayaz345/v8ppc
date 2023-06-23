@@ -28,19 +28,20 @@ class SimdJsTestSuite(testsuite.TestSuite):
           filename in ['run.js', 'run_browser.js', 'base.js']):
         continue
       name = filename.rsplit('.')[0]
-      tests.append(
-          testcase.TestCase(self, 'benchmarks/' + name))
+      tests.append(testcase.TestCase(self, f'benchmarks/{name}'))
     return tests
 
   def GetFlagsForTestCase(self, testcase, context):
-    return (testcase.flags + context.mode_flags +
-            [os.path.join(self.root, "harness-adapt.js"),
-             "--harmony", "--harmony-simd",
-             os.path.join(self.testroot, testcase.path + ".js"),
-             os.path.join(self.root, "harness-finish.js")])
+    return (testcase.flags + context.mode_flags + [
+        os.path.join(self.root, "harness-adapt.js"),
+        "--harmony",
+        "--harmony-simd",
+        os.path.join(self.testroot, f"{testcase.path}.js"),
+        os.path.join(self.root, "harness-finish.js"),
+    ])
 
   def GetSourceForTest(self, testcase):
-    filename = os.path.join(self.testroot, testcase.path + ".js")
+    filename = os.path.join(self.testroot, f"{testcase.path}.js")
     with open(filename) as f:
       return f.read()
 

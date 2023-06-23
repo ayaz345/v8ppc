@@ -43,9 +43,7 @@ class Error(Exception):
 
 
 def ToCArray(byte_sequence):
-  result = []
-  for chr in byte_sequence:
-    result.append(str(ord(chr)))
+  result = [str(ord(chr)) for chr in byte_sequence]
   joined = ", ".join(result)
   return textwrap.fill(joined, 80)
 
@@ -79,9 +77,8 @@ def Validate(lines):
     raise Error("Eval disallowed in natives.")
   if WITH_PATTERN.search(lines):
     raise Error("With statements disallowed in natives.")
-  invalid_error = INVALID_ERROR_MESSAGE_PATTERN.search(lines)
-  if invalid_error:
-    raise Error("Unknown error message template '%s'" % invalid_error.group(1))
+  if invalid_error := INVALID_ERROR_MESSAGE_PATTERN.search(lines):
+    raise Error(f"Unknown error message template '{invalid_error.group(1)}'")
   if NEW_ERROR_PATTERN.search(lines):
     raise Error("Error constructed without message template.")
   # Pass lines through unchanged.
@@ -109,19 +106,22 @@ def ExpandMacroDefinition(lines, pos, name_pattern, macro, expander):
       # Remember to expand recursively in the arguments
       if arg_index[0] >= len(macro.args):
         lineno = lines.count(os.linesep, 0, start) + 1
-        raise Error('line %s: Too many arguments for macro "%s"' % (lineno, name_pattern.pattern))
+        raise Error(
+            f'line {lineno}: Too many arguments for macro "{name_pattern.pattern}"'
+        )
       replacement = expander(str.strip())
       mapping[macro.args[arg_index[0]]] = replacement
       arg_index[0] += 1
+
     while end < len(lines) and height > 0:
       # We don't count commas at higher nesting levels.
       if lines[end] == ',' and height == 1:
         add_arg(lines[last_match:end])
         last_match = end + 1
       elif lines[end] in ['(', '{', '[']:
-        height = height + 1
+        height += 1
       elif lines[end] in [')', '}', ']']:
-        height = height - 1
+        height -= 1
       end = end + 1
     # Remember to add the last match.
     add_arg(lines[last_match:end-1])
@@ -157,9 +157,7 @@ class PythonMacro:
     self.args = args
     self.fun = fun
   def expand(self, mapping):
-    args = []
-    for arg in self.args:
-      args.append(mapping[arg])
+    args = [mapping[arg] for arg in self.args]
     return str(self.fun(*args))
 
 CONST_PATTERN = re.compile(r'^define\s+([a-zA-Z0-9_]+)\s*=\s*([^;]*);$')
@@ -175,28 +173,23 @@ def ReadMacros(lines):
     if hash != -1: line = line[:hash]
     line = line.strip()
     if len(line) is 0: continue
-    const_match = CONST_PATTERN.match(line)
-    if const_match:
+    if const_match := CONST_PATTERN.match(line):
       name = const_match.group(1)
       value = const_match.group(2).strip()
       constants.append((re.compile("\\b%s\\b" % name), value))
+    elif macro_match := MACRO_PATTERN.match(line):
+      name = macro_match.group(1)
+      args = [match.strip() for match in macro_match.group(2).split(',')]
+      body = macro_match.group(3).strip()
+      macros.append((re.compile("\\b%s\\(" % name), TextMacro(args, body)))
+    elif python_match := PYTHON_MACRO_PATTERN.match(line):
+      name = python_match.group(1)
+      args = [match.strip() for match in python_match.group(2).split(',')]
+      body = python_match.group(3).strip()
+      fun = eval("lambda " + ",".join(args) + ': ' + body)
+      macros.append((re.compile("\\b%s\\(" % name), PythonMacro(args, fun)))
     else:
-      macro_match = MACRO_PATTERN.match(line)
-      if macro_match:
-        name = macro_match.group(1)
-        args = [match.strip() for match in macro_match.group(2).split(',')]
-        body = macro_match.group(3).strip()
-        macros.append((re.compile("\\b%s\\(" % name), TextMacro(args, body)))
-      else:
-        python_match = PYTHON_MACRO_PATTERN.match(line)
-        if python_match:
-          name = python_match.group(1)
-          args = [match.strip() for match in python_match.group(2).split(',')]
-          body = python_match.group(3).strip()
-          fun = eval("lambda " + ",".join(args) + ': ' + body)
-          macros.append((re.compile("\\b%s\\(" % name), PythonMacro(args, fun)))
-        else:
-          raise Error("Illegal line: " + line)
+      raise Error(f"Illegal line: {line}")
   return (constants, macros)
 
 
@@ -206,9 +199,8 @@ def ReadMessageTemplates(lines):
   templates = []
   index = 0
   for line in lines.split('\n'):
-    template_match = TEMPLATE_PATTERN.match(line)
-    if template_match:
-      name = "k%s" % template_match.group(1)
+    if template_match := TEMPLATE_PATTERN.match(line):
+      name = f"k{template_match.group(1)}"
       value = index
       index = index + 1
       templates.append((re.compile("\\b%s\\b" % name), value))
@@ -228,7 +220,7 @@ def ExpandInlineMacros(lines):
     args = [match.strip() for match in macro_match.group(2).split(',')]
     end_macro_match = INLINE_MACRO_END_PATTERN.search(lines, macro_match.end());
     if end_macro_match is None:
-      raise Error("Macro %s unclosed" % name)
+      raise Error(f"Macro {name} unclosed")
     body = lines[macro_match.end():end_macro_match.start()]
 
     # remove macro definition
@@ -241,6 +233,7 @@ def ExpandInlineMacros(lines):
 
     def non_expander(s):
       return s
+
     lines = ExpandMacroDefinition(lines, pos, name_pattern, macro, non_expander)
 
 
@@ -406,14 +399,14 @@ def PrepareSources(source_files, native_type, emit_js):
   """
   macro_file = None
   macro_files = filter(IsMacroFile, source_files)
-  assert len(macro_files) in [0, 1]
+  assert len(macro_files) in {0, 1}
   if macro_files:
     source_files.remove(macro_files[0])
     macro_file = macro_files[0]
 
   message_template_file = None
   message_template_files = filter(IsMessageTemplateFile, source_files)
-  assert len(message_template_files) in [0, 1]
+  assert len(message_template_files) in {0, 1}
   if message_template_files:
     source_files.remove(message_template_files[0])
     message_template_file = message_template_files[0]
@@ -480,7 +473,7 @@ def BuildMetadata(sources, source_bytes, native_type):
   get_script_source_cases = []
   offset = 0
   for i in xrange(len(sources.modules)):
-    native_name = "native %s.js" % sources.names[i]
+    native_name = f"native {sources.names[i]}.js"
     d = {
         "i": i,
         "id": sources.names[i],
@@ -495,17 +488,16 @@ def BuildMetadata(sources, source_bytes, native_type):
     offset += len(sources.modules[i])
   assert offset == len(raw_sources)
 
-  metadata = {
-    "builtin_count": len(sources.modules),
-    "debugger_count": sum(sources.is_debugger_id),
-    "sources_declaration": SOURCES_DECLARATION % ToCArray(source_bytes),
-    "total_length": total_length,
-    "get_index_cases": "".join(get_index_cases),
-    "get_script_source_cases": "".join(get_script_source_cases),
-    "get_script_name_cases": "".join(get_script_name_cases),
-    "type": native_type,
+  return {
+      "builtin_count": len(sources.modules),
+      "debugger_count": sum(sources.is_debugger_id),
+      "sources_declaration": SOURCES_DECLARATION % ToCArray(source_bytes),
+      "total_length": total_length,
+      "get_index_cases": "".join(get_index_cases),
+      "get_script_source_cases": "".join(get_script_source_cases),
+      "get_script_name_cases": "".join(get_script_name_cases),
+      "type": native_type,
   }
-  return metadata
 
 
 def PutInt(blob_file, value):
@@ -521,7 +513,7 @@ def PutInt(blob_file, value):
   value_with_length = (value << 2) | (size - 1)
 
   byte_sequence = bytearray()
-  for i in xrange(size):
+  for _ in xrange(size):
     byte_sequence.append(value_with_length & 255)
     value_with_length >>= 8;
   blob_file.write(byte_sequence)
@@ -540,20 +532,17 @@ def WriteStartupBlob(sources, startup_blob):
     sources: A Sources instance with the prepared sources.
     startup_blob_file: Name of file to write the blob to.
   """
-  output = open(startup_blob, "wb")
+  with open(startup_blob, "wb") as output:
+    debug_sources = sum(sources.is_debugger_id);
+    PutInt(output, debug_sources)
+    for i in xrange(debug_sources):
+      PutStr(output, sources.names[i]);
+      PutStr(output, sources.modules[i]);
 
-  debug_sources = sum(sources.is_debugger_id);
-  PutInt(output, debug_sources)
-  for i in xrange(debug_sources):
-    PutStr(output, sources.names[i]);
-    PutStr(output, sources.modules[i]);
-
-  PutInt(output, len(sources.names) - debug_sources)
-  for i in xrange(debug_sources, len(sources.names)):
-    PutStr(output, sources.names[i]);
-    PutStr(output, sources.modules[i]);
-
-  output.close()
+    PutInt(output, len(sources.names) - debug_sources)
+    for i in xrange(debug_sources, len(sources.names)):
+      PutStr(output, sources.names[i]);
+      PutStr(output, sources.modules[i]);
 
 
 def JS2C(sources, target, native_type, raw_file, startup_blob, emit_js):
@@ -563,20 +552,16 @@ def JS2C(sources, target, native_type, raw_file, startup_blob, emit_js):
 
   # Optionally emit raw file.
   if raw_file:
-    output = open(raw_file, "w")
-    output.write(sources_output)
-    output.close()
-
+    with open(raw_file, "w") as output:
+      output.write(sources_output)
   if startup_blob:
     WriteStartupBlob(prepared_sources, startup_blob)
 
-  # Emit resulting source file.
-  output = open(target, "w")
-  if emit_js:
-    output.write(sources_output)
-  else:
-    output.write(HEADER_TEMPLATE % metadata)
-  output.close()
+  with open(target, "w") as output:
+    if emit_js:
+      output.write(sources_output)
+    else:
+      output.write(HEADER_TEMPLATE % metadata)
 
 
 def main():

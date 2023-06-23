@@ -114,20 +114,21 @@ def _search_related_commits(
 
 def _find_commits_inbetween(start_hash, end_hash, git_working_dir, verbose):
   commits_between = git_execute(
-        git_working_dir,
-        ["rev-list", "--reverse", start_hash + ".." + end_hash],
-        verbose)
+      git_working_dir,
+      ["rev-list", "--reverse", f"{start_hash}..{end_hash}"],
+      verbose,
+  )
   return commits_between.strip()
 
 def _convert_to_array(string_of_hashes):
   return string_of_hashes.splitlines()
 
 def _remove_duplicates(array):
-   no_duplicates = []
-   for current in array:
-    if not current in no_duplicates:
+  no_duplicates = []
+  for current in array:
+    if current not in no_duplicates:
       no_duplicates.append(current)
-   return no_duplicates
+  return no_duplicates
 
 def git_execute(working_dir, args, verbose=False):
   command = ["git", "-C", working_dir] + args
@@ -156,41 +157,41 @@ def _pretty_print_entry(hash, git_dir, pre_text, verbose):
   return pre_text + text_to_print.strip()
 
 def main(options):
-    all_related_commits = search_all_related_commits(
-        options.git_dir,
-        options.of[0],
-        options.until[0],
-        options.separator,
-        options.verbose)
+  all_related_commits = search_all_related_commits(
+      options.git_dir,
+      options.of[0],
+      options.until[0],
+      options.separator,
+      options.verbose)
 
-    sort_key = lambda x: (
-        git_execute(
-            options.git_dir,
-            ["show", "--quiet", "--date=iso", x, "--format=%ad"],
-            options.verbose)).strip()
+  sort_key = lambda x: (
+      git_execute(
+          options.git_dir,
+          ["show", "--quiet", "--date=iso", x, "--format=%ad"],
+          options.verbose)).strip()
 
-    high_level_commits = sorted(all_related_commits.keys(), key=sort_key)
+  high_level_commits = sorted(all_related_commits.keys(), key=sort_key)
 
-    for current_key in high_level_commits:
+  for current_key in high_level_commits:
+    if options.prettyprint:
+      yield _pretty_print_entry(
+          current_key,
+          options.git_dir,
+          "+",
+          options.verbose)
+    else:
+      yield f"+{current_key}"
+
+    found_commits = all_related_commits[current_key]
+    for current_commit in found_commits:
       if options.prettyprint:
         yield _pretty_print_entry(
-            current_key,
+            current_commit,
             options.git_dir,
-            "+",
+            "| ",
             options.verbose)
       else:
-        yield "+" + current_key
-
-      found_commits = all_related_commits[current_key]
-      for current_commit in found_commits:
-        if options.prettyprint:
-          yield _pretty_print_entry(
-              current_commit,
-              options.git_dir,
-              "| ",
-              options.verbose)
-        else:
-          yield "| " + current_commit
+        yield f"| {current_commit}"
 
 if __name__ == "__main__":  # pragma: no cover
   parser = argparse.ArgumentParser(

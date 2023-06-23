@@ -186,7 +186,7 @@ def _CheckNoProductionCodeUsingTestOnlyFunctions(input_api, output_api):
 
   base_function_pattern = r'[ :]test::[^\s]+|ForTest(ing)?|for_test(ing)?'
   inclusion_pattern = input_api.re.compile(r'(%s)\s*\(' % base_function_pattern)
-  comment_pattern = input_api.re.compile(r'//.*(%s)' % base_function_pattern)
+  comment_pattern = input_api.re.compile(f'//.*({base_function_pattern})')
   exclusion_pattern = input_api.re.compile(
     r'::[A-Za-z0-9_]+(%s)|(%s)[^;]+\{' % (
       base_function_pattern, base_function_pattern))

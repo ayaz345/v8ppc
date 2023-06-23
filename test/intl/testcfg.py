@@ -63,8 +63,7 @@ class IntlTestSuite(testsuite.TestSuite):
     for match in flags_match:
       flags += match.strip().split()
 
-    files = []
-    files.append(os.path.join(self.root, "assert.js"))
+    files = [os.path.join(self.root, "assert.js")]
     files.append(os.path.join(self.root, "utils.js"))
     files.append(os.path.join(self.root, "regexp-prepare.js"))
     files.append(os.path.join(self.root, testcase.path + self.suffix()))

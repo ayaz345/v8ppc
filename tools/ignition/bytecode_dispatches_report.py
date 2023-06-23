@@ -77,10 +77,10 @@ def print_top_bytecode_dispatch_pairs(dispatches_table, top_count):
 
 
 def find_top_bytecodes(dispatches_table):
-  top_bytecodes = []
-  for bytecode, counters_from_bytecode in iteritems(dispatches_table):
-    top_bytecodes.append((bytecode, sum(itervalues(counters_from_bytecode))))
-
+  top_bytecodes = [
+      (bytecode, sum(itervalues(counters_from_bytecode)))
+      for bytecode, counters_from_bytecode in iteritems(dispatches_table)
+  ]
   top_bytecodes.sort(key=lambda x: x[1], reverse=True)
   return top_bytecodes
 
@@ -101,12 +101,10 @@ def find_top_dispatch_sources_and_destinations(
       count = destinations[bytecode]
       sources.append((source, count, count / total))
 
-  destinations = []
   bytecode_destinations = dispatches_table[bytecode]
   bytecode_total = float(sum(itervalues(bytecode_destinations)))
-  for destination, count in iteritems(bytecode_destinations):
-    destinations.append((destination, count, count / bytecode_total))
-
+  destinations = [(destination, count, count / bytecode_total)
+                  for destination, count in iteritems(bytecode_destinations)]
   return (heapq.nlargest(top_count, sources,
                          key=lambda x: x[2 if sort_source_relative else 1]),
           heapq.nlargest(top_count, destinations, key=lambda x: x[1]))

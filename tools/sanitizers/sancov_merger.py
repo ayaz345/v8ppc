@@ -80,7 +80,7 @@ def merge(args):
     result_file_name = '%s.result.%d.sancov' % (executable, index)
   else:
     # This is the final result without bucket index.
-    result_file_name = '%s.result.sancov' % executable
+    result_file_name = f'{executable}.result.sancov'
   with open(os.path.join(coverage_dir, result_file_name), "wb") as f:
     f.write(output)
   if not keep:
@@ -129,8 +129,7 @@ def merge_test_runner_output(options):
   # Map executable names to their respective sancov files.
   file_map = {}
   for f in os.listdir(options.coverage_dir):
-    match = SANCOV_FILE_RE.match(f)
-    if match:
+    if match := SANCOV_FILE_RE.match(f):
       file_map.setdefault(match.group(1), []).append(f)
 
   inputs = generate_inputs(
@@ -183,8 +182,7 @@ def merge_swarming_output(options):
   # Iterate sancov files from swarming.
   files = []
   for f in os.listdir(options.swarming_output_dir):
-    match = SANCOV_RESULTS_FILE_RE.match(f)
-    if match:
+    if match := SANCOV_RESULTS_FILE_RE.match(f):
       if os.path.exists(os.path.join(options.coverage_dir, f)):
         # If the same file already exists, we'll merge the data.
         files.append(f)

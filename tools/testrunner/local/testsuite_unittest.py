@@ -23,23 +23,14 @@ class TestSuiteTest(unittest.TestCase):
       TestCase(suite, 'foo/bar'),
       TestCase(suite, 'baz/bar'),
     ]
-    suite.rules = {
-      '': {
-        'foo/bar': set(['PASS', 'SKIP']),
-        'baz/bar': set(['PASS', 'FAIL']),
-      },
-    }
-    suite.wildcards = {
-      '': {
-        'baz/*': set(['PASS', 'SLOW']),
-      },
-    }
+    suite.rules = {'': {'foo/bar': {'PASS', 'SKIP'}, 'baz/bar': {'PASS', 'FAIL'}}}
+    suite.wildcards = {'': {'baz/*': {'PASS', 'SLOW'}}}
     suite.FilterTestCasesByStatus(warn_unused_rules=False)
     self.assertEquals(
         [TestCase(suite, 'baz/bar')],
         suite.tests,
     )
-    self.assertEquals(set(['PASS', 'FAIL', 'SLOW']), suite.tests[0].outcomes)
+    self.assertEquals({'PASS', 'FAIL', 'SLOW'}, suite.tests[0].outcomes)
 
   def test_filter_testcases_by_status_second_pass(self):
     suite = TestSuite('foo', 'bar')
@@ -48,8 +39,8 @@ class TestSuiteTest(unittest.TestCase):
     test2 = TestCase(suite, 'baz/bar')
 
     # Contrived outcomes from filtering by variant-independent rules.
-    test1.outcomes = set(['PREV'])
-    test2.outcomes = set(['PREV'])
+    test1.outcomes = {'PREV'}
+    test2.outcomes = {'PREV'}
 
     suite.tests = [
       test1.CopyAddingFlags(variant='default', flags=[]),
@@ -59,21 +50,21 @@ class TestSuiteTest(unittest.TestCase):
     ]
 
     suite.rules = {
-      'default': {
-        'foo/bar': set(['PASS', 'SKIP']),
-        'baz/bar': set(['PASS', 'FAIL']),
-      },
-      'stress': {
-        'baz/bar': set(['SKIP']),
-      },
+        'default': {
+            'foo/bar': {'PASS', 'SKIP'},
+            'baz/bar': {'PASS', 'FAIL'}
+        },
+        'stress': {
+            'baz/bar': {'SKIP'}
+        },
     }
     suite.wildcards = {
-      'default': {
-        'baz/*': set(['PASS', 'SLOW']),
-      },
-      'stress': {
-        'foo/*': set(['PASS', 'SLOW']),
-      },
+        'default': {
+            'baz/*': {'PASS', 'SLOW'}
+        },
+        'stress': {
+            'foo/*': {'PASS', 'SLOW'}
+        },
     }
     suite.FilterTestCasesByStatus(warn_unused_rules=False, variants=True)
     self.assertEquals(
@@ -84,14 +75,8 @@ class TestSuiteTest(unittest.TestCase):
         suite.tests,
     )
 
-    self.assertEquals(
-        set(['PASS', 'SLOW', 'PREV']),
-        suite.tests[0].outcomes,
-    )
-    self.assertEquals(
-        set(['PASS', 'FAIL', 'SLOW', 'PREV']),
-        suite.tests[1].outcomes,
-    )
+    self.assertEquals({'PASS', 'SLOW', 'PREV'}, suite.tests[0].outcomes)
+    self.assertEquals({'PASS', 'FAIL', 'SLOW', 'PREV'}, suite.tests[1].outcomes)
 
 
 if __name__ == '__main__':

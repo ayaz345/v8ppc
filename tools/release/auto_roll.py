@@ -81,8 +81,9 @@ class DetectRevisionToRoll(Step):
         self["roll"] = revision
         break
     else:
-      print("There is no newer v8 revision than the one in Chromium (%s)."
-            % self["last_roll"])
+      print(
+          f'There is no newer v8 revision than the one in Chromium ({self["last_roll"]}).'
+      )
       self['json_output']['monitoring_state'] = 'up_to_date'
       return True
 
@@ -177,7 +178,7 @@ class CleanUp(Step):
           % self["roll"])
 
     # Clean up all temporary files.
-    Command("rm", "-f %s*" % self._config["PERSISTFILE_BASENAME"])
+    Command("rm", f'-f {self._config["PERSISTFILE_BASENAME"]}*')
 
 
 class AutoRoll(ScriptsBase):

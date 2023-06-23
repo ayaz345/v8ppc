@@ -131,9 +131,7 @@ def using_blacklist(item):
   # Special case Windows, keep .dll.lib but discard .lib.
   if item.endswith('.dll.lib'):
     return True
-  if ext == '.lib':
-    return False
-  return item not in ('', '|', '||')
+  return False if ext == '.lib' else item not in ('', '|', '||')
 
 
 def raw_build_to_deps(item):
@@ -177,10 +175,7 @@ def post_process_deps(build_dir, dependencies):
     if i.endswith('.dylib.TOC'):
       # Remove only the suffix .TOC, not the .dylib!
       return i[:-4]
-    if i.endswith('.dll.lib'):
-      # Remove only the suffix .lib, not the .dll!
-      return i[:-4]
-    return i
+    return i[:-4] if i.endswith('.dll.lib') else i
 
   def is_exe(i):
     # This script is only for adding new binaries that are created as part of
@@ -243,15 +238,14 @@ def create_wrapper(args, isolate_index, isolated_index):
 
   # Now do actual wrapping .isolate.
   isolate_dict = {
-    'includes': [
-      posixpath.join(isolate_relpath, isolate),
-    ],
-    'variables': {
-      # Will look like ['<(PRODUCT_DIR)/lib/flibuser_prefs.so'].
-      'files': sorted(
-          '<(PRODUCT_DIR)/%s' % i.replace(os.path.sep, '/')
-          for i in binary_deps),
-    },
+      'includes': [
+          posixpath.join(isolate_relpath, isolate),
+      ],
+      'variables': {
+          'files':
+          sorted(f"<(PRODUCT_DIR)/{i.replace(os.path.sep, '/')}"
+                 for i in binary_deps)
+      },
   }
   # Some .isolate files have the same temp directory and the build system may
   # run this script in parallel so make directories safely here.

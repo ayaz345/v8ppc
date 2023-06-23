@@ -308,7 +308,7 @@ def get_base_class(klass):
         if (klass == 'Object'):
                 return klass;
 
-        if (not (klass in klasses)):
+        if klass not in klasses:
                 return None;
 
         k = klasses[klass];
@@ -325,13 +325,7 @@ def load_objects():
 
         typestr = '';
 
-        #
-        # Construct a dictionary for the classes we're sure should be present.
-        #
-        checktypes = {};
-        for klass in expected_classes:
-                checktypes[klass] = True;
-
+        checktypes = {klass: True for klass in expected_classes}
         #
         # Iterate objects.h line-by-line to collect type and class information.
         # For types, we accumulate a string representing the entire InstanceType
@@ -353,12 +347,10 @@ def load_objects():
                         typestr += line;
                         continue;
 
-                match = re.match('class (\w[^:]*)(: public (\w[^{]*))?\s*{\s*',
-                    line);
-
-                if (match):
-                        klass = match.group(1).strip();
-                        pklass = match.group(3);
+                if match := re.match(
+                    'class (\w[^:]*)(: public (\w[^{]*))?\s*{\s*', line):
+                        klass = match[1].strip();
+                        pklass = match[3];
                         if (pklass):
                                 pklass = pklass.strip();
                         klasses[klass] = { 'parent': pklass };
@@ -396,7 +388,7 @@ def load_objects():
                 if (not usetype.endswith('_TYPE')):
                         continue;
 
-                usetype = usetype[0:len(usetype) - len('_TYPE')];
+                usetype = usetype[:len(usetype) - len('_TYPE')];
                 parts = usetype.split('_');
                 cctype = '';
 
@@ -451,7 +443,7 @@ def load_objects():
                                 cctype = re.sub('String$', 'TwoByteString',
                                     cctype);
 
-                        if (not (cctype in klasses)):
+                        if cctype not in klasses:
                                 cctype = re.sub('OneByte', '', cctype);
                                 cctype = re.sub('TwoByte', '', cctype);
 
@@ -463,7 +455,7 @@ def load_objects():
                         if (cctype in checktypes):
                                 del checktypes[cctype];
 
-        if (len(checktypes) > 0):
+        if checktypes:
                 for klass in checktypes:
                         print('error: expected class \"%s\" not found' % klass);
 
@@ -481,32 +473,29 @@ def parse_field(call):
                         call[ii] == ' ';
 
         idx = call.find('(');
-        kind = call[0:idx];
-        rest = call[idx + 1: len(call) - 1];
+        kind = call[:idx];
+        rest = call[idx + 1:-1];
         args = re.split('\s*,\s*', rest);
 
         consts = [];
 
-        if (kind == 'ACCESSORS' or kind == 'ACCESSORS_GCSAFE'):
+        if kind in ['ACCESSORS', 'ACCESSORS_GCSAFE']:
                 klass = args[0];
                 field = args[1];
                 dtype = args[2];
                 offset = args[3];
 
-                return ({
-                    'name': 'class_%s__%s__%s' % (klass, field, dtype),
-                    'value': '%s::%s' % (klass, offset)
-                });
+                return {
+                    'name': f'class_{klass}__{field}__{dtype}',
+                    'value': f'{klass}::{offset}',
+                };
 
-        assert(kind == 'SMI_ACCESSORS' or kind == 'ACCESSORS_TO_SMI');
+        assert kind in ['SMI_ACCESSORS', 'ACCESSORS_TO_SMI'];
         klass = args[0];
         field = args[1];
         offset = args[2];
 
-        return ({
-            'name': 'class_%s__%s__%s' % (klass, field, 'SMI'),
-            'value': '%s::%s' % (klass, offset)
-        });
+        return {'name': f'class_{klass}__{field}__SMI', 'value': f'{klass}::{offset}'};
 
 #
 # Load field offset information from objects-inl.h.
@@ -539,11 +528,11 @@ def load_fields():
                                 if (opens == 0):
                                         break;
 
-                        current += line[0:ii + 1];
+                        current += line[:ii + 1];
                         continue;
 
                 for prefix in prefixes:
-                        if (not line.startswith(prefix + '(')):
+                        if not line.startswith(f'{prefix}('):
                                 continue;
 
                         if (len(current) > 0):
@@ -559,14 +548,14 @@ def load_fields():
                                 if (opens == 0):
                                         break;
 
-                        current += line[0:ii + 1];
+                        current += line[:ii + 1];
 
         if (len(current) > 0):
                 fields.append(parse_field(current));
                 current = '';
 
         for body in extras_accessors:
-                fields.append(parse_field('ACCESSORS(%s)' % body));
+                fields.append(parse_field(f'ACCESSORS({body})'));
 
 #
 # Emit a block of constants.
@@ -598,10 +587,7 @@ def emit_config():
         keys.sort();
         for typename in keys:
                 klass = typeclasses[typename];
-                consts.append({
-                    'name': 'type_%s__%s' % (klass, typename),
-                    'value': typename
-                });
+                consts.append({'name': f'type_{klass}__{typename}', 'value': typename});
 
         emit_set(out, consts);
 
@@ -614,13 +600,10 @@ def emit_config():
                 bklass = get_base_class(klassname);
                 if (bklass != 'Object'):
                         continue;
-                if (pklass == None):
+                if pklass is None:
                         continue;
 
-                consts.append({
-                    'name': 'parent_%s__%s' % (klassname, pklass),
-                    'value': 0
-                });
+                consts.append({'name': f'parent_{klassname}__{pklass}', 'value': 0});
 
         emit_set(out, consts);
 
@@ -630,7 +613,7 @@ def emit_config():
         out.write(footer);
 
 if (len(sys.argv) < 4):
-        print('usage: %s output.cc objects.h objects-inl.h' % sys.argv[0]);
+        print(f'usage: {sys.argv[0]} output.cc objects.h objects-inl.h');
         sys.exit(2);
 
 load_objects();

@@ -63,11 +63,10 @@ def GetOutputDirectory():
   genflags += shlex.split(os.environ.get('GYP_GENERATOR_FLAGS', ''))
 
   needle = 'output_dir='
-  for item in genflags:
-    if item.startswith(needle):
-      return item[len(needle):]
-
-  return 'out'
+  return next(
+      (item[len(needle):] for item in genflags if item.startswith(needle)),
+      'out',
+  )
 
 
 def additional_include_files(args=[]):

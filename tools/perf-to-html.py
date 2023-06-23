@@ -54,9 +54,7 @@ def ComputeProbability(z):
     return 0.08
   if z > 1.644853: # p 0.050: two sided < 0.10
     return 0.09
-  if z > 1.281551: # p 0.100: two sided < 0.20
-    return 0.10
-  return 0.20 # two sided p >= 0.20
+  return 0.10 if z > 1.281551 else 0.20
 
 
 class Result:
@@ -185,9 +183,9 @@ class BenchmarkRenderer:
     for test in benchmark.SortedTestKeys():
       t = tests[test]
       self.Print("  <tr>")
-      self.Print("    <td>" + test + "</td>")
-      self.Print("    <td>" + str(t.result()) + "</td>")
-      self.Print("    <td>" + str(t.master_result()) + "</td>")
+      self.Print(f"    <td>{test}</td>")
+      self.Print(f"    <td>{str(t.result())}</td>")
+      self.Print(f"    <td>{str(t.master_result())}</td>")
       t = tests[test]
       res = t.percentage_string()
       if t.isSignificant():
@@ -196,13 +194,13 @@ class BenchmarkRenderer:
         res = self.green(res)
       elif t.isNotablyNegative():
         res = self.red(res)
-      self.Print("    <td>" + res + "</td>")
+      self.Print(f"    <td>{res}</td>")
       self.Print("  </tr>")
     self.Print("</tbody>")
     self.Print("</table>")
 
   def ProcessJSONData(self, data, title):
-    self.Print("<h1>" + title + "</h1>")
+    self.Print(f"<h1>{title}</h1>")
     self.Print("<ul>")
     for benchmark in data:
      if benchmark != "errors":
@@ -214,7 +212,7 @@ class BenchmarkRenderer:
         self.RenderOneBenchmark(benchmark_object)
 
   def bold(self, data):
-    return "<b>" + data + "</b>"
+    return f"<b>{data}</b>"
 
   def red(self, data):
     return "<font color=\"red\">" + data + "</font>"

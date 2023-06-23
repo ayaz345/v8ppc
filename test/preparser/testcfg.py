@@ -40,7 +40,7 @@ class PreparserTestSuite(testsuite.TestSuite):
     return "d8"
 
   def _ParsePythonTestTemplates(self, result, filename):
-    pathname = os.path.join(self.root, filename + ".pyt")
+    pathname = os.path.join(self.root, f"{filename}.pyt")
     def Test(name, source, expectation, extra_flags=[]):
       source = source.replace("\n", " ")
       testname = os.path.join(filename, name)
@@ -50,15 +50,18 @@ class PreparserTestSuite(testsuite.TestSuite):
       flags += extra_flags
       test = testcase.TestCase(self, testname, flags=flags)
       result.append(test)
+
     def Template(name, source):
       def MkTest(replacement, expectation):
         testname = name
         testsource = source
         for key in replacement.keys():
-          testname = testname.replace("$" + key, replacement[key]);
-          testsource = testsource.replace("$" + key, replacement[key]);
+          testname = testname.replace(f"${key}", replacement[key]);
+          testsource = testsource.replace(f"${key}", replacement[key]);
         Test(testname, testsource, expectation)
+
       return MkTest
+
     execfile(pathname, {"Test": Test, "Template": Template})
 
   def ListTests(self, context):

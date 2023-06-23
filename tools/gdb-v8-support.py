@@ -97,7 +97,7 @@ def decode_v8_value(v, bitness):
     else:
       return base_str + (" SMI(%d)" % smi_to_int_64(v))
   elif has_failure_tag(v):
-    return base_str + " (failure)"
+    return f"{base_str} (failure)"
   elif has_heap_object_tag(v):
     return base_str + (" H(0x%x)" % raw_heap_object(v))
   else:
@@ -123,10 +123,10 @@ class V8ValuePrinter(object):
 
 def v8_pretty_printers(val):
   lookup_tag = val.type.tag
-  if lookup_tag == None:
-    return None
-  elif lookup_tag == 'v8value':
+  if lookup_tag == 'v8value':
     return V8ValuePrinter(val)
+  elif lookup_tag is None:
+    return None
   return None
 gdb.pretty_printers.append(v8_pretty_printers)
 
@@ -161,11 +161,10 @@ class FindAnywhere (gdb.Command):
   LIVE_MAPPING_RE = re.compile(r"^\s+0x([0-9A-Fa-f]+)\s+0x([0-9A-Fa-f]+)")
   def __init__ (self):
     super (FindAnywhere, self).__init__ ("find-anywhere", gdb.COMMAND_DATA)
-  def find (self, startAddr, endAddr, value):
+  def find(self, startAddr, endAddr, value):
     try:
-      result = gdb.execute(
-          "find 0x%s, 0x%s, %s" % (startAddr, endAddr, value),
-          to_string = True)
+      result = gdb.execute(f"find 0x{startAddr}, 0x{endAddr}, {value}",
+                           to_string=True)
       if result.find("not found") == -1:
         print(result)
     except:

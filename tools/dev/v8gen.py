@@ -100,12 +100,8 @@ class GenerateGnArgs(object):
     if not options.outdir:
       # Derive output directory from builder name.
       options.outdir = _sanitize_nonalpha(options.builder)
-    else:
-      # Also, if this should work on windows, we might need to use \ where
-      # outdir is used as path, while using / if it's used in a gn context.
-      if options.outdir.startswith('/'):
-        parser.error(
-            'only output directories relative to %s are supported' % OUT_DIR)
+    elif options.outdir.startswith('/'):
+      parser.error(f'only output directories relative to {OUT_DIR} are supported')
 
     if not options.builder:
       # Derive builder from output directory.
@@ -167,17 +163,13 @@ class GenerateGnArgs(object):
   @property
   def _goma_args(self):
     """Gn args for using goma."""
-    # Specify goma args if we want to use goma and if goma isn't specified
-    # via command line already. The command-line always has precedence over
-    # any other specification.
-    if (self._use_goma and
-        not any(re.match(r'use_goma\s*=.*', x) for x in self._gn_args)):
-      if self._need_goma_dir:
-        return 'use_goma=true\ngoma_dir="%s"' % self._goma_dir
-      else:
-        return 'use_goma=true'
-    else:
+    if not self._use_goma or any(
+        re.match(r'use_goma\s*=.*', x) for x in self._gn_args):
       return ''
+    if self._need_goma_dir:
+      return 'use_goma=true\ngoma_dir="%s"' % self._goma_dir
+    else:
+      return 'use_goma=true'
 
   def _append_gn_args(self, type, gn_args_path, more_gn_args):
     """Append extra gn arguments to the generated args.gn file."""
@@ -196,7 +188,7 @@ class GenerateGnArgs(object):
     # handling. This script can be used in any v8 checkout.
     workdir = self._find_work_dir(os.getcwd())
     if workdir != os.getcwd():
-      self.verbose_print_1('cd ' + workdir)
+      self.verbose_print_1(f'cd {workdir}')
       os.chdir(workdir)
 
     # The directories are separated with slashes in a gn context (platform

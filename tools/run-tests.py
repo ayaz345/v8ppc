@@ -204,12 +204,14 @@ SLOW_ARCHS = ["android_arm",
 
 def BuildOptions():
   result = optparse.OptionParser()
+  result.description = f"""TESTS: {TEST_MAP["default"]}"""
   result.usage = '%prog [options] [tests]'
-  result.description = """TESTS: %s""" % (TEST_MAP["default"])
-  result.add_option("--arch",
-                    help=("The architecture to run tests for, "
-                          "'auto' or 'native' for auto-detect: %s" % SUPPORTED_ARCHS),
-                    default="ia32,x64,arm")
+  result.add_option(
+      "--arch",
+      help=
+      f"The architecture to run tests for, 'auto' or 'native' for auto-detect: {SUPPORTED_ARCHS}",
+      default="ia32,x64,arm",
+  )
   result.add_option("--arch-and-mode",
                     help="Architecture and mode in the format 'arch.mode'",
                     default=None)
@@ -259,10 +261,13 @@ def BuildOptions():
                     default=False, action="store_true")
   result.add_option("-j", help="The number of parallel tasks to run",
                     default=0, type="int")
-  result.add_option("-m", "--mode",
-                    help="The test modes in which to run (comma-separated,"
-                    " uppercase for ninja and buildbot builds): %s" % MODES.keys(),
-                    default="release,debug")
+  result.add_option(
+      "-m",
+      "--mode",
+      help=
+      f"The test modes in which to run (comma-separated, uppercase for ninja and buildbot builds): {MODES.keys()}",
+      default="release,debug",
+  )
   result.add_option("--no-harness", "--noharness",
                     help="Run without test harness of a given suite",
                     default=False, action="store_true")
@@ -392,11 +397,8 @@ def SetupEnvironment(options):
 
   if options.sancov_dir:
     assert os.path.exists(options.sancov_dir)
-    os.environ['ASAN_OPTIONS'] = ":".join([
-      'coverage=1',
-      'coverage_dir=%s' % options.sancov_dir,
-      symbolizer,
-    ])
+    os.environ['ASAN_OPTIONS'] = ":".join(
+        ['coverage=1', f'coverage_dir={options.sancov_dir}', symbolizer])
 
   if options.cfi_vptr:
     os.environ['UBSAN_OPTIONS'] = ":".join([
@@ -413,12 +415,12 @@ def SetupEnvironment(options):
     suppressions_file = os.path.join(
         BASE_DIR, 'tools', 'sanitizers', 'tsan_suppressions.txt')
     os.environ['TSAN_OPTIONS'] = " ".join([
-      symbolizer,
-      'suppressions=%s' % suppressions_file,
-      'exit_code=0',
-      'report_thread_leaks=0',
-      'history_size=7',
-      'report_destroy_locked=0',
+        symbolizer,
+        f'suppressions={suppressions_file}',
+        'exit_code=0',
+        'report_thread_leaks=0',
+        'history_size=7',
+        'report_destroy_locked=0',
     ])
 
 def ProcessOptions(options):

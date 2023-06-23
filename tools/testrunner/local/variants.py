@@ -27,6 +27,14 @@ FAST_VARIANT_FLAGS = {
   "preparser": [["--min-preparse-length=0"]],
 }
 
-ALL_VARIANTS = set(["default", "stress", "turbofan", "turbofan_opt",
-                    "nocrankshaft", "ignition", "ignition_staging",
-                    "ignition_turbofan", "preparser"])
+ALL_VARIANTS = {
+    "default",
+    "stress",
+    "turbofan",
+    "turbofan_opt",
+    "nocrankshaft",
+    "ignition",
+    "ignition_staging",
+    "ignition_turbofan",
+    "preparser",
+}

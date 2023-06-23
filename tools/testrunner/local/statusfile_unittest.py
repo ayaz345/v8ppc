@@ -33,29 +33,29 @@ TEST_STATUS_FILE = """
 
 def make_variables():
   variables = {}
-  variables.update(TEST_VARIABLES)
+  variables |= TEST_VARIABLES
   return variables
 
 
 class UtilsTest(unittest.TestCase):
   def test_freeze(self):
     self.assertEqual(2, Freeze({1: [2]})[1][0])
-    self.assertEqual(set([3]), Freeze({1: [2], 2: set([3])})[2])
+    self.assertEqual({3}, Freeze({1: [2], 2: {3}})[2])
 
     with self.assertRaises(Exception):
-      Freeze({1: [], 2: set([3])})[2] = 4
+      Freeze({1: [], 2: {3}})[2] = 4
     with self.assertRaises(Exception):
-      Freeze({1: [], 2: set([3])}).update({3: 4})
+      Freeze({1: [], 2: {3}}).update({3: 4})
     with self.assertRaises(Exception):
-      Freeze({1: [], 2: set([3])})[1].append(2)
+      Freeze({1: [], 2: {3}})[1].append(2)
     with self.assertRaises(Exception):
-      Freeze({1: [], 2: set([3])})[2] |= set([3])
+      Freeze({1: [], 2: {3}})[2] |= {3}
 
     # Sanity check that we can do the same calls on a non-frozen object.
-    {1: [], 2: set([3])}[2] = 4
-    {1: [], 2: set([3])}.update({3: 4})
-    {1: [], 2: set([3])}[1].append(2)
-    {1: [], 2: set([3])}[2] |= set([3])
+    {1: [], 2: {3}}[2] = 4
+    {1: [], 2: {3}}[3] = 4
+    {1: [], 2: {3}}[1].append(2)
+    {1: [], 2: {3}}[2] |= {3}
 
 
 class StatusFileTest(unittest.TestCase):
@@ -92,17 +92,12 @@ class StatusFileTest(unittest.TestCase):
 
     self.assertEquals(
         {
-          'foo/bar': set(['PASS', 'SKIP']),
-          'baz/bar': set(['PASS', 'FAIL', 'SLOW']),
+            'foo/bar': {'PASS', 'SKIP'},
+            'baz/bar': {'PASS', 'FAIL', 'SLOW'}
         },
         rules[''],
     )
-    self.assertEquals(
-        {
-          'foo/*': set(['SLOW', 'FAIL']),
-        },
-        wildcards[''],
-    )
+    self.assertEquals({'foo/*': {'SLOW', 'FAIL'}}, wildcards[''])
     self.assertEquals({}, rules['default'])
     self.assertEquals({}, wildcards['default'])
 
@@ -110,19 +105,11 @@ class StatusFileTest(unittest.TestCase):
     rules, wildcards = statusfile.ReadStatusFile(
         TEST_STATUS_FILE % 'system==windows', make_variables())
 
-    self.assertEquals(
-        {
-          'foo/bar': set(['PASS', 'SKIP']),
-          'baz/bar': set(['PASS', 'FAIL']),
-        },
-        rules[''],
-    )
-    self.assertEquals(
-        {
-          'foo/*': set(['PASS', 'SLOW']),
-        },
-        wildcards[''],
-    )
+    self.assertEquals({
+        'foo/bar': {'PASS', 'SKIP'},
+        'baz/bar': {'PASS', 'FAIL'}
+    }, rules[''])
+    self.assertEquals({'foo/*': {'PASS', 'SLOW'}}, wildcards[''])
     self.assertEquals({}, rules['default'])
     self.assertEquals({}, wildcards['default'])
 
@@ -132,31 +119,13 @@ class StatusFileTest(unittest.TestCase):
         make_variables(),
     )
 
-    self.assertEquals(
-        {
-          'foo/bar': set(['PASS', 'SKIP']),
-          'baz/bar': set(['PASS', 'FAIL']),
-        },
-        rules[''],
-    )
-    self.assertEquals(
-        {
-          'foo/*': set(['PASS', 'SLOW']),
-        },
-        wildcards[''],
-    )
-    self.assertEquals(
-        {
-          'baz/bar': set(['PASS', 'SLOW']),
-        },
-        rules['default'],
-    )
-    self.assertEquals(
-        {
-          'foo/*': set(['FAIL']),
-        },
-        wildcards['default'],
-    )
+    self.assertEquals({
+        'foo/bar': {'PASS', 'SKIP'},
+        'baz/bar': {'PASS', 'FAIL'}
+    }, rules[''])
+    self.assertEquals({'foo/*': {'PASS', 'SLOW'}}, wildcards[''])
+    self.assertEquals({'baz/bar': {'PASS', 'SLOW'}}, rules['default'])
+    self.assertEquals({'foo/*': {'FAIL'}}, wildcards['default'])
 
 
 if __name__ == '__main__':

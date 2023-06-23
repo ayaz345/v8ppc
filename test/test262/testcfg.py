@@ -38,7 +38,7 @@ from testrunner.local import utils
 from testrunner.objects import testcase
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-ARCHIVE = DATA + ".tar"
+ARCHIVE = f"{DATA}.tar"
 
 TEST_262_HARNESS_FILES = ["sta.js", "assert.js"]
 TEST_262_NATIVE_FILES = ["detachArrayBuffer.js"]
@@ -50,27 +50,25 @@ TEST_262_TOOLS_PATH = ["harness", "src"]
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              *TEST_262_TOOLS_PATH))
 
-ALL_VARIANT_FLAGS_STRICT = dict(
-    (v, [flags + ["--use-strict"] for flags in flag_sets])
+ALL_VARIANT_FLAGS_STRICT = {
+    v: [flags + ["--use-strict"] for flags in flag_sets]
     for v, flag_sets in testsuite.ALL_VARIANT_FLAGS.iteritems()
-)
+}
 
-FAST_VARIANT_FLAGS_STRICT = dict(
-    (v, [flags + ["--use-strict"] for flags in flag_sets])
+FAST_VARIANT_FLAGS_STRICT = {
+    v: [flags + ["--use-strict"] for flags in flag_sets]
     for v, flag_sets in testsuite.FAST_VARIANT_FLAGS.iteritems()
-)
+}
 
-ALL_VARIANT_FLAGS_BOTH = dict(
-    (v, [flags for flags in testsuite.ALL_VARIANT_FLAGS[v] +
-                            ALL_VARIANT_FLAGS_STRICT[v]])
+ALL_VARIANT_FLAGS_BOTH = {
+    v: list(testsuite.ALL_VARIANT_FLAGS[v] + ALL_VARIANT_FLAGS_STRICT[v])
     for v in testsuite.ALL_VARIANT_FLAGS
-)
+}
 
-FAST_VARIANT_FLAGS_BOTH = dict(
-    (v, [flags for flags in testsuite.FAST_VARIANT_FLAGS[v] +
-                            FAST_VARIANT_FLAGS_STRICT[v]])
+FAST_VARIANT_FLAGS_BOTH = {
+    v: list(testsuite.FAST_VARIANT_FLAGS[v] + FAST_VARIANT_FLAGS_STRICT[v])
     for v in testsuite.FAST_VARIANT_FLAGS
-)
+}
 
 ALL_VARIANTS = {
   'nostrict': testsuite.ALL_VARIANT_FLAGS,
@@ -129,16 +127,14 @@ class Test262TestSuite(testsuite.TestSuite):
     return tests
 
   def GetFlagsForTestCase(self, testcase, context):
-    return (testcase.flags + context.mode_flags + self.harness +
-            self.GetIncludesForTest(testcase) + ["--harmony"] +
-            (["--module"] if "module" in self.GetTestRecord(testcase) else []) +
-            [os.path.join(self.testroot, testcase.path + ".js")] +
-            (["--throws"] if "negative" in self.GetTestRecord(testcase)
-                          else []) +
-            (["--allow-natives-syntax"]
-             if "detachArrayBuffer.js" in
-                self.GetTestRecord(testcase).get("includes", [])
-             else []))
+    return (
+        (testcase.flags + context.mode_flags + self.harness +
+         self.GetIncludesForTest(testcase) + ["--harmony"] +
+         (["--module"] if "module" in self.GetTestRecord(testcase) else []) +
+         [os.path.join(self.testroot, f"{testcase.path}.js")]) +
+        (["--throws"] if "negative" in self.GetTestRecord(testcase) else []) +
+        (["--allow-natives-syntax"] if "detachArrayBuffer.js"
+         in self.GetTestRecord(testcase).get("includes", []) else []))
 
   def _VariantGeneratorFactory(self):
     return Test262VariantGenerator
@@ -179,7 +175,7 @@ class Test262TestSuite(testsuite.TestSuite):
     return includes
 
   def GetSourceForTest(self, testcase):
-    filename = os.path.join(self.testroot, testcase.path + ".js")
+    filename = os.path.join(self.testroot, f"{testcase.path}.js")
     with open(filename) as f:
       return f.read()
 
@@ -204,7 +200,7 @@ class Test262TestSuite(testsuite.TestSuite):
     if (statusfile.FAIL_SLOPPY in testcase.outcomes and
         "--use-strict" not in testcase.flags):
       return outcome != statusfile.FAIL
-    return not outcome in (testcase.outcomes or [statusfile.PASS])
+    return outcome not in (testcase.outcomes or [statusfile.PASS])
 
   def PrepareSources(self):
     # The archive is created only on swarming. Local checkouts have the

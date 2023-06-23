@@ -73,7 +73,7 @@ class MozillaTestSuite(testsuite.TestSuite):
         dirs.sort()
         files.sort()
         for filename in files:
-          if filename.endswith(".js") and not filename in FRAMEWORK:
+          if filename.endswith(".js") and filename not in FRAMEWORK:
             fullpath = os.path.join(dirname, filename)
             relpath = fullpath[len(self.testroot) + 1 : -3]
             testname = relpath.replace(os.path.sep, "/")
@@ -86,7 +86,7 @@ class MozillaTestSuite(testsuite.TestSuite):
     result += context.mode_flags
     result += ["--expose-gc"]
     result += [os.path.join(self.root, "mozilla-shell-emulation.js")]
-    testfilename = testcase.path + ".js"
+    testfilename = f"{testcase.path}.js"
     testfilepath = testfilename.split("/")
     for i in xrange(len(testfilepath)):
       script = os.path.join(self.testroot,
@@ -98,7 +98,7 @@ class MozillaTestSuite(testsuite.TestSuite):
     return testcase.flags + result
 
   def GetSourceForTest(self, testcase):
-    filename = os.path.join(self.testroot, testcase.path + ".js")
+    filename = os.path.join(self.testroot, f"{testcase.path}.js")
     with open(filename) as f:
       return f.read()
 

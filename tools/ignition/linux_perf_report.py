@@ -147,7 +147,7 @@ def calculate_samples_count_per_handler(callchains):
 
 def write_flamegraph_input_file(output_stream, callchains):
   for callchain, count in calculate_samples_count_per_callchain(callchains):
-    output_stream.write("{}; {}\n".format(callchain, count))
+    output_stream.write(f"{callchain}; {count}\n")
 
 
 def write_handlers_report(output_stream, callchains):

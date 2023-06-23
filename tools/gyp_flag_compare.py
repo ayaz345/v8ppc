@@ -44,7 +44,7 @@ def MergeSpacedArgs(command_line, argname):
   while i < len(command_line):
     arg = command_line[i]
     if arg == argname:
-      result.append(arg + ' ' + command_line[i + 1])
+      result.append(f'{arg} {command_line[i + 1]}')
       i += 1
     else:
       result.append(arg)

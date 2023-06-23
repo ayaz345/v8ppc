@@ -36,8 +36,8 @@ from ..objects import testcase
 from variants import ALL_VARIANTS, ALL_VARIANT_FLAGS, FAST_VARIANT_FLAGS
 
 
-FAST_VARIANTS = set(["default", "turbofan"])
-STANDARD_VARIANT = set(["default"])
+FAST_VARIANTS = {"default", "turbofan"}
+STANDARD_VARIANT = {"default"}
 
 
 class VariantGenerator(object):
@@ -96,14 +96,11 @@ class TestSuite(object):
     return ".js"
 
   def status_file(self):
-    return "%s/%s.status" % (self.root, self.name)
+    return f"{self.root}/{self.name}.status"
 
   # Used in the status file and for stdout printing.
   def CommonTestName(self, testcase):
-    if utils.IsWindows():
-      return testcase.path.replace("\\", "/")
-    else:
-      return testcase.path
+    return testcase.path.replace("\\", "/") if utils.IsWindows() else testcase.path
 
   def ListTests(self, context):
     raise NotImplementedError
@@ -216,22 +213,24 @@ class TestSuite(object):
     if not variants:
       for rule in self.rules[""]:
         if (rule, "") not in used_rules:
-          print("Unused rule: %s -> %s (variant independent)" % (
-              rule, self.rules[""][rule]))
+          print(f'Unused rule: {rule} -> {self.rules[""][rule]} (variant independent)')
       for rule in self.wildcards[""]:
         if (rule, "") not in used_rules:
-          print("Unused rule: %s -> %s (variant independent)" % (
-              rule, self.wildcards[""][rule]))
+          print(
+              f'Unused rule: {rule} -> {self.wildcards[""][rule]} (variant independent)'
+          )
     else:
       for variant in ALL_VARIANTS:
         for rule in self.rules[variant]:
           if (rule, variant) not in used_rules:
-            print("Unused rule: %s -> %s (variant: %s)" % (
-                rule, self.rules[variant][rule], variant))
+            print(
+                f"Unused rule: {rule} -> {self.rules[variant][rule]} (variant: {variant})"
+            )
         for rule in self.wildcards[variant]:
           if (rule, variant) not in used_rules:
-            print("Unused rule: %s -> %s (variant: %s)" % (
-                rule, self.wildcards[variant][rule], variant))
+            print(
+                f"Unused rule: {rule} -> {self.wildcards[variant][rule]} (variant: {variant})"
+            )
 
 
   def FilterTestCasesByArgs(self, args):
@@ -298,7 +297,7 @@ class TestSuite(object):
 
   def HasUnexpectedOutput(self, testcase):
     outcome = self.GetOutcome(testcase)
-    return not outcome in (testcase.outcomes or [statusfile.PASS])
+    return outcome not in (testcase.outcomes or [statusfile.PASS])
 
   def StripOutputForTransmit(self, testcase):
     if not self.HasUnexpectedOutput(testcase):
@@ -345,10 +344,9 @@ class GoogleTestSuite(TestSuite):
     return tests
 
   def GetFlagsForTestCase(self, testcase, context):
-    return (testcase.flags + ["--gtest_filter=" + testcase.path] +
-            ["--gtest_random_seed=%s" % context.random_seed] +
-            ["--gtest_print_time=0"] +
-            context.mode_flags)
+    return ((testcase.flags + [f"--gtest_filter={testcase.path}"] +
+             [f"--gtest_random_seed={context.random_seed}"]) +
+            ["--gtest_print_time=0"]) + context.mode_flags
 
   def _VariantGeneratorFactory(self):
     return StandardVariantGenerator

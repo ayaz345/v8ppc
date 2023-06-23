@@ -72,30 +72,23 @@ def MakeProcessContext(context):
   suite_paths = utils.GetSuitePaths(TEST_DIR)
   suites = {}
   for root in suite_paths:
-    # Don't reinitialize global state as this is concurrently called from
-    # different processes.
-    suite = testsuite.TestSuite.LoadTestSuite(
-        os.path.join(TEST_DIR, root), global_init=False)
-    if suite:
+    if suite := testsuite.TestSuite.LoadTestSuite(os.path.join(TEST_DIR, root),
+                                                  global_init=False):
       suites[suite.name] = suite
   return ProcessContext(suites, context)
 
 
 def GetCommand(test, context):
-  d8testflag = []
   shell = test.shell()
-  if shell == "d8":
-    d8testflag = ["--test"]
+  d8testflag = ["--test"] if shell == "d8" else []
   if utils.IsWindows():
     shell += ".exe"
   if context.random_seed:
-    d8testflag += ["--random-seed=%s" % context.random_seed]
-  cmd = (context.command_prefix +
-         [os.path.abspath(os.path.join(context.shell_dir, shell))] +
-         d8testflag +
-         test.suite.GetFlagsForTestCase(test, context) +
-         context.extra_flags)
-  return cmd
+    d8testflag += [f"--random-seed={context.random_seed}"]
+  return (context.command_prefix +
+          [os.path.abspath(os.path.join(context.shell_dir, shell))] +
+          d8testflag + test.suite.GetFlagsForTestCase(test, context) +
+          context.extra_flags)
 
 
 def _GetInstructions(test, context):
@@ -132,10 +125,10 @@ class Job(object):
 
 def SetupProblem(exception, test):
   stderr = ">>> EXCEPTION: %s\n" % exception
-  match = re.match(r"^.*No such file or directory: '(.*)'$", str(exception))
-  if match:
+  if match := re.match(r"^.*No such file or directory: '(.*)'$",
+                       str(exception)):
     # Extra debuging information when files are claimed missing.
-    f = match.group(1)
+    f = match[1]
     stderr += ">>> File %s exists? -> %s\n" % (f, os.path.exists(f))
   return test.id, output.Output(1, False, "", stderr, None), 0
 

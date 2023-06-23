@@ -73,7 +73,7 @@ def start_replay_server(args, sites):
 
 
 def stop_replay_server(server):
-  print("SHUTTING DOWN REPLAY SERVER %s" % server['process'].pid)
+  print(f"SHUTTING DOWN REPLAY SERVER {server['process'].pid}")
   server['process'].terminate()
   os.remove(server['injection'])
 
@@ -220,7 +220,7 @@ def read_sites_file(args):
           if 'timeout' not in item:
             # This is more-or-less arbitrary.
             item['timeout'] = int(1.5 * item['timeline'] + 7)
-          if item['timeout'] > args.timeout: item['timeout'] = args.timeout
+          item['timeout'] = min(item['timeout'], args.timeout)
           sites.append(item)
     except ValueError:
       with open(args.sites_file, "rt") as f:
@@ -230,7 +230,7 @@ def read_sites_file(args):
           sites.append({'url': line, 'timeout': args.timeout})
     return sites
   except IOError as e:
-    args.error("Cannot read from {}. {}.".format(args.sites_file, e.strerror))
+    args.error(f"Cannot read from {args.sites_file}. {e.strerror}.")
     sys.exit(1)
 
 
@@ -509,7 +509,7 @@ def do_help(parser, subparsers, args):
     if args.help_cmd in subparsers:
       subparsers[args.help_cmd].print_help()
     else:
-      args.error("Unknown command '{}'".format(args.help_cmd))
+      args.error(f"Unknown command '{args.help_cmd}'")
   else:
     parser.print_help()
 
@@ -518,16 +518,13 @@ def do_help(parser, subparsers, args):
 
 def coexist(*l):
   given = sum(1 for x in l if x)
-  return given == 0 or given == len(l)
+  return given in [0, len(l)]
 
 def main():
   parser = argparse.ArgumentParser()
   subparser_adder = parser.add_subparsers(title="commands", dest="command",
                                           metavar="<command>")
-  subparsers = {}
-  # Command: run.
-  subparsers["run"] = subparser_adder.add_parser(
-      "run", help="run --help")
+  subparsers = {"run": subparser_adder.add_parser("run", help="run --help")}
   subparsers["run"].set_defaults(
       func=do_run, error=subparsers["run"].error)
   subparsers["run"].add_argument(

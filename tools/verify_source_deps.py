@@ -52,12 +52,10 @@ def isources(directory):
 def iflatten(obj):
   if isinstance(obj, dict):
     for value in obj.values():
-      for i in iflatten(value):
-        yield i
+      yield from iflatten(value)
   elif isinstance(obj, list):
     for value in obj:
-      for i in iflatten(value):
-        yield i
+      yield from iflatten(value)
   elif isinstance(obj, basestring):
     yield path_no_prefix(obj)
 
@@ -78,9 +76,8 @@ def iflatten_gn_file(gn_file):
   """
   with open(gn_file) as f:
     for line in f.read().splitlines():
-      match = re.match(r'.*"([^"]*)".*', line)
-      if match:
-        yield path_no_prefix(match.group(1))
+      if match := re.match(r'.*"([^"]*)".*', line):
+        yield path_no_prefix(match[1])
 
 
 def icheck_values(values, *source_dirs):

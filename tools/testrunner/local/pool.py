@@ -113,7 +113,7 @@ class Pool():
       gen = iter(gen)
       self.advance = self._advance_more
 
-      for w in xrange(self.num_workers):
+      for _ in xrange(self.num_workers):
         p = Process(target=Worker, args=(fn,
                                          self.work_queue,
                                          self.done_queue,
@@ -177,7 +177,7 @@ class Pool():
     # they empty the queue buffer.
     self.done.set()
 
-    for p in self.processes:
+    for _ in self.processes:
       # During normal tear down the workers block on get(). Feed a poison pill
       # per worker to make them stop.
       self.work_queue.put("STOP")

@@ -38,10 +38,7 @@ class CcTestSuite(testsuite.TestSuite):
 
   def __init__(self, name, root):
     super(CcTestSuite, self).__init__(name, root)
-    if utils.IsWindows():
-      build_dir = "build"
-    else:
-      build_dir = "out"
+    build_dir = "build" if utils.IsWindows() else "out"
 
   def ListTests(self, context):
     shell = os.path.abspath(os.path.join(context.shell_dir, self.shell()))

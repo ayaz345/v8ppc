@@ -62,9 +62,7 @@ class TestMergeInfo(unittest.TestCase):
         "Child commit wrong")
 
   def _get_commits(self):
-    commits = self._execute_git(
-        ["log", "--format=%H", "--reverse"]).splitlines()
-    return commits
+    return self._execute_git(["log", "--format=%H", "--reverse"]).splitlines()
 
   def _make_empty_commit(self, message):
     self._execute_git(["commit", "--allow-empty", "-m", message])
@@ -78,9 +76,7 @@ class TestMergeInfo(unittest.TestCase):
         self.base_dir,
         hash_of_first_commit).splitlines()
 
-    self.assertEqual(
-        result[0],
-        'commit ' + hash_of_first_commit)
+    self.assertEqual(result[0], f'commit {hash_of_first_commit}')
 
   def testCanDescribeCommitSingleLine(self):
     commits = self._get_commits()
@@ -90,15 +86,14 @@ class TestMergeInfo(unittest.TestCase):
         self.base_dir,
         hash_of_first_commit, True).splitlines()
 
-    self.assertEqual(
-        str(result[0]),
-        str(hash_of_first_commit[0:7]) + ' Initial commit')
+    self.assertEqual(str(result[0]),
+                     f'{str(hash_of_first_commit[:7])} Initial commit')
 
   def testSearchFollowUpCommits(self):
     commits = self._get_commits()
     hash_of_first_commit = commits[0]
 
-    message = 'Follow-up commit of '  + hash_of_first_commit
+    message = f'Follow-up commit of {hash_of_first_commit}'
     self._make_empty_commit(message)
     self._make_empty_commit(message)
     self._make_empty_commit(message)
@@ -124,11 +119,11 @@ class TestMergeInfo(unittest.TestCase):
     self._make_empty_commit(message)
 
     # This should be found
-    message = 'Merge '  + hash_of_first_commit
+    message = f'Merge {hash_of_first_commit}'
     hash_of_hit = self._make_empty_commit(message)
 
     # This should be ignored
-    message = 'Cr-Branched-From: '  + hash_of_first_commit
+    message = f'Cr-Branched-From: {hash_of_first_commit}'
     hash_of_ignored = self._make_empty_commit(message)
 
     self._execute_git(['checkout', 'master'])
@@ -140,7 +135,7 @@ class TestMergeInfo(unittest.TestCase):
     # Check if follow ups and merges are not overlapping
     self.assertEqual(len(followups), 0)
 
-    message = 'Follow-up commit of '  + hash_of_first_commit
+    message = f'Follow-up commit of {hash_of_first_commit}'
     hash_of_followup = self._make_empty_commit(message)
 
     merges = mergeinfo.get_merge_commits(self.base_dir, hash_of_first_commit)

@@ -86,12 +86,10 @@ class TestCase(object):
     return self.suite.name
 
   def GetLabel(self):
-    return self.suitename() + "/" + self.suite.CommonTestName(self)
+    return f"{self.suitename()}/{self.suite.CommonTestName(self)}"
 
   def shell(self):
-    if self.override_shell:
-      return self.override_shell
-    return self.suite.shell()
+    return self.override_shell if self.override_shell else self.suite.shell()
 
   def __getstate__(self):
     """Representation to pickle test cases.
@@ -110,4 +108,4 @@ class TestCase(object):
     )
 
   def __str__(self):
-    return "[%s/%s  %s]" % (self.suite.name, self.path, self.flags)
+    return f"[{self.suite.name}/{self.path}  {self.flags}]"

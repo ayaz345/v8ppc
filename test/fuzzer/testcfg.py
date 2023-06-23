@@ -26,12 +26,11 @@ class FuzzerTestSuite(testsuite.TestSuite):
   def ListTests(self, context):
     tests = []
     for subtest in FuzzerTestSuite.SUB_TESTS:
-      shell = 'v8_simple_%s_fuzzer' % subtest
+      shell = f'v8_simple_{subtest}_fuzzer'
       for fname in os.listdir(os.path.join(self.root, subtest)):
         if not os.path.isfile(os.path.join(self.root, subtest, fname)):
           continue
-        test = testcase.TestCase(self, '%s/%s' % (subtest, fname),
-                                 override_shell=shell)
+        test = testcase.TestCase(self, f'{subtest}/{fname}', override_shell=shell)
         tests.append(test)
     tests.sort()
     return tests

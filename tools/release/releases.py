@@ -112,14 +112,11 @@ def BuildRevisionRanges(cr_releases):
     range_lists.setdefault(cr_releases[-1][1], []).append(cr_releases[-1][0])
 
   # Stringify and comma-separate the range lists.
-  return dict((hsh, ", ".join(ran)) for hsh, ran in range_lists.iteritems())
+  return {hsh: ", ".join(ran) for hsh, ran in range_lists.iteritems()}
 
 
 def MatchSafe(match):
-  if match:
-    return match.group(1)
-  else:
-    return ""
+  return match.group(1) if match else ""
 
 
 class Preparation(Step):
@@ -146,18 +143,16 @@ class RetrieveV8Releases(Step):
       patches = MatchSafe(ROLLBACK_MESSAGE_RE.search(body))
       if patches:
         # Indicate reverted patches with a "-".
-        patches = "-%s" % patches
+        patches = f"-{patches}"
     return patches
 
   def GetMergedPatchesGit(self, body):
     patches = []
     for line in body.splitlines():
-      patch = MatchSafe(MERGE_MESSAGE_GIT_RE.match(line))
-      if patch:
+      if patch := MatchSafe(MERGE_MESSAGE_GIT_RE.match(line)):
         patches.append(patch)
-      patch = MatchSafe(ROLLBACK_MESSAGE_GIT_RE.match(line))
-      if patch:
-        patches.append("-%s" % patch)
+      if patch := MatchSafe(ROLLBACK_MESSAGE_GIT_RE.match(line)):
+        patches.append(f"-{patch}")
     return ", ".join(patches)
 
 
@@ -166,32 +161,19 @@ class RetrieveV8Releases(Step):
       patches, cl_body):
     revision = self.GetCommitPositionNumber(git_hash)
     return {
-      # The cr commit position number on the branch.
-      "revision": revision,
-      # The git revision on the branch.
-      "revision_git": git_hash,
-      # The cr commit position number on master.
-      "master_position": master_position,
-      # The same for git.
-      "master_hash": master_hash,
-      # The branch name.
-      "branch": branch,
-      # The version for displaying in the form 3.26.3 or 3.26.3.12.
-      "version": version,
-      # The date of the commit.
-      "date": self.GitLog(n=1, format="%ci", git_hash=git_hash),
-      # Merged patches if available in the form 'r1234, r2345'.
-      "patches_merged": patches,
-      # Default for easier output formatting.
-      "chromium_revision": "",
-      # Default for easier output formatting.
-      "chromium_branch": "",
-      # Link to the CL on code review. Candiates pushes are not uploaded,
-      # so this field will be populated below with the recent roll CL link.
-      "review_link": MatchSafe(REVIEW_LINK_RE.search(cl_body)),
-      # Link to the commit message on google code.
-      "revision_link": ("https://code.google.com/p/v8/source/detail?r=%s"
-                        % revision),
+        "revision": revision,
+        "revision_git": git_hash,
+        "master_position": master_position,
+        "master_hash": master_hash,
+        "branch": branch,
+        "version": version,
+        "date": self.GitLog(n=1, format="%ci", git_hash=git_hash),
+        "patches_merged": patches,
+        "chromium_revision": "",
+        "chromium_branch": "",
+        "review_link": MatchSafe(REVIEW_LINK_RE.search(cl_body)),
+        "revision_link":
+        f"https://code.google.com/p/v8/source/detail?r={revision}",
     }
 
   def GetRelease(self, git_hash, branch):
@@ -202,7 +184,7 @@ class RetrieveV8Releases(Step):
 
     patches = ""
     if self["patch"] != "0":
-      version += ".%s" % self["patch"]
+      version += f'.{self["patch"]}'
       if CHERRY_PICK_TITLE_GIT_RE.match(body.splitlines()[0]):
         patches = self.GetMergedPatchesGit(body)
       else:
@@ -342,7 +324,7 @@ class RetrieveChromiumV8Releases(Step):
     cwd = self._options.chromium
 
     # All v8 revisions we are interested in.
-    releases_dict = dict((r["revision_git"], r) for r in self["releases"])
+    releases_dict = {r["revision_git"]: r for r in self["releases"]}
 
     cr_releases = []
     count_past_last_v8 = 0
@@ -351,10 +333,8 @@ class RetrieveChromiumV8Releases(Step):
           format="%H", grep="V8", branch="origin/master",
           path="DEPS", cwd=cwd).splitlines():
         deps = self.GitShowFile(git_hash, "DEPS", cwd=cwd)
-        match = DEPS_RE.search(deps)
-        if match:
-          cr_rev = self.GetCommitPositionNumber(git_hash, cwd=cwd)
-          if cr_rev:
+        if match := DEPS_RE.search(deps):
+          if cr_rev := self.GetCommitPositionNumber(git_hash, cwd=cwd):
             v8_hsh = match.group(1)
             cr_releases.append([cr_rev, v8_hsh])
 
@@ -370,7 +350,6 @@ class RetrieveChromiumV8Releases(Step):
           if v8_hsh not in releases_dict:
             count_past_last_v8 += 1  # pragma: no cover
 
-    # Allow Ctrl-C interrupt.
     except (KeyboardInterrupt, SystemExit):  # pragma: no cover
       pass
 
@@ -389,15 +368,14 @@ class RetrieveChromiumBranches(Step):
     cwd = self._options.chromium
 
     # All v8 revisions we are interested in.
-    releases_dict = dict((r["revision_git"], r) for r in self["releases"])
+    releases_dict = {r["revision_git"]: r for r in self["releases"]}
 
     # Filter out irrelevant branches.
     branches = filter(lambda r: re.match(r"branch-heads/\d+", r),
                       self.GitRemotes(cwd=cwd))
 
     # Transform into pure branch numbers.
-    branches = map(lambda r: int(re.match(r"branch-heads/(\d+)", r).group(1)),
-                   branches)
+    branches = map(lambda r: int(re.match(r"branch-heads/(\d+)", r)[1]), branches)
 
     branches = sorted(branches, reverse=True)
 
@@ -407,8 +385,7 @@ class RetrieveChromiumBranches(Step):
       for branch in branches:
         deps = self.GitShowFile(
             "refs/branch-heads/%d" % branch, "DEPS", cwd=cwd)
-        match = DEPS_RE.search(deps)
-        if match:
+        if match := DEPS_RE.search(deps):
           v8_hsh = match.group(1)
           cr_branches.append([str(branch), v8_hsh])
 
@@ -424,7 +401,6 @@ class RetrieveChromiumBranches(Step):
           if v8_hsh not in releases_dict:
             count_past_last_v8 += 1  # pragma: no cover
 
-    # Allow Ctrl-C interrupt.
     except (KeyboardInterrupt, SystemExit):  # pragma: no cover
       pass
 
@@ -440,11 +416,9 @@ class RetrieveInformationOnChromeReleases(Step):
   def Run(self):
 
     params = None
-    result_raw = self.ReadURL(
-                             OMAHA_PROXY_URL + "all.json",
-                             params,
-                             wait_plan=[5, 20]
-                             )
+    result_raw = self.ReadURL(f"{OMAHA_PROXY_URL}all.json",
+                              params,
+                              wait_plan=[5, 20])
     recent_releases = json.loads(result_raw)
 
     canaries = []
@@ -475,8 +449,8 @@ class RetrieveInformationOnChromeReleases(Step):
 
   def _CreateCandidate(self, current_version):
     params = None
-    url_to_call = (OMAHA_PROXY_URL + "v8.json?version="
-                   + current_version["previous_version"])
+    url_to_call = (f"{OMAHA_PROXY_URL}v8.json?version=" +
+                   current_version["previous_version"])
     result_raw = self.ReadURL(
                          url_to_call,
                          params,
@@ -488,16 +462,15 @@ class RetrieveInformationOnChromeReleases(Step):
     current_v8_version = current_version["v8_version"]
     v8_version_hash = self._GetGitHashForV8Version(current_v8_version)
 
-    current_candidate = {
-                        "chrome_version": current_version["version"],
-                        "os": current_version["os"],
-                        "release_date": current_version["current_reldate"],
-                        "v8_version": current_v8_version,
-                        "v8_version_hash": v8_version_hash,
-                        "v8_previous_version": previous_v8_version,
-                        "v8_previous_version_hash": v8_previous_version_hash,
-                       }
-    return current_candidate
+    return {
+        "chrome_version": current_version["version"],
+        "os": current_version["os"],
+        "release_date": current_version["current_reldate"],
+        "v8_version": current_v8_version,
+        "v8_version_hash": v8_version_hash,
+        "v8_previous_version": previous_v8_version,
+        "v8_previous_version_hash": v8_previous_version_hash,
+    }
 
 
 class CleanUp(Step):

@@ -48,11 +48,24 @@ FAIL_SLOPPY = "FAIL_SLOPPY"
 
 ALWAYS = "ALWAYS"
 
-KEYWORDS = {}
-for key in [SKIP, FAIL, PASS, OKAY, TIMEOUT, CRASH, SLOW, FAIL_OK,
-            FAST_VARIANTS, NO_VARIANTS, PASS_OR_FAIL, FAIL_SLOPPY, ALWAYS]:
-  KEYWORDS[key] = key
-
+KEYWORDS = {
+    key: key
+    for key in [
+        SKIP,
+        FAIL,
+        PASS,
+        OKAY,
+        TIMEOUT,
+        CRASH,
+        SLOW,
+        FAIL_OK,
+        FAST_VARIANTS,
+        NO_VARIANTS,
+        PASS_OR_FAIL,
+        FAIL_SLOPPY,
+        ALWAYS,
+    ]
+}
 DEFS = {FAIL_OK: [FAIL, OKAY],
         PASS_OR_FAIL: [PASS, FAIL]}
 
@@ -87,8 +100,8 @@ def OnlyFastVariants(outcomes):
 
 
 def IsPassOrFail(outcomes):
-  return ((PASS in outcomes) and (FAIL in outcomes) and
-          (not CRASH in outcomes) and (not OKAY in outcomes))
+  return (PASS in outcomes and FAIL in outcomes and CRASH not in outcomes
+          and OKAY not in outcomes)
 
 
 def IsFailOk(outcomes):
@@ -112,11 +125,7 @@ def _JoinsPassAndFail(outcomes1, outcomes2):
   """Indicates if we join PASS and FAIL from two different outcome sets and
   the first doesn't already contain both.
   """
-  return (
-      PASS in outcomes1 and
-      not FAIL in outcomes1 and
-      FAIL in outcomes2
-  )
+  return PASS in outcomes1 and FAIL not in outcomes1 and FAIL in outcomes2
 
 VARIANT_EXPRESSION = object()
 
@@ -124,14 +133,14 @@ def _EvalExpression(exp, variables):
   try:
     return eval(exp, variables)
   except NameError as e:
-    identifier = re.match("name '(.*)' is not defined", e.message).group(1)
-    assert identifier == "variant", "Unknown identifier: %s" % identifier
+    identifier = re.match("name '(.*)' is not defined", e.message)[1]
+    assert identifier == "variant", f"Unknown identifier: {identifier}"
     return VARIANT_EXPRESSION
 
 
 def _EvalVariantExpression(section, rules, wildcards, variant, variables):
   variables_with_variant = {}
-  variables_with_variant.update(variables)
+  variables_with_variant |= variables
   variables_with_variant["variant"] = variant
   result = _EvalExpression(section[0], variables_with_variant)
   assert result != VARIANT_EXPRESSION
@@ -169,7 +178,7 @@ def _ParseOutcomeList(rule, outcomes, target_dict, variables):
         _AddOutcome(result, outcome)
     else:
       assert False
-  if len(result) == 0: return
+  if not result: return
   if rule in target_dict:
     # A FAIL without PASS in one rule has always precedence over a single
     # PASS (without FAIL) in another. Otherwise the default PASS expectation
@@ -177,9 +186,9 @@ def _ParseOutcomeList(rule, outcomes, target_dict, variables):
     # from another rule (which intended to mark a test as FAIL and not as
     # PASS and FAIL).
     if _JoinsPassAndFail(target_dict[rule], result):
-      target_dict[rule] -= set([PASS])
+      target_dict[rule] -= {PASS}
     if _JoinsPassAndFail(result, target_dict[rule]):
-      result -= set([PASS])
+      result -= {PASS}
     target_dict[rule] |= result
   else:
     target_dict[rule] = result

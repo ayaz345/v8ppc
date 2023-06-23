@@ -77,9 +77,7 @@ class TestSearchRelatedCommits(unittest.TestCase):
         "Child commit wrong")
 
   def _get_commits(self):
-    commits = self._execute_git(
-        ["log", "--format=%H", "--reverse"]).splitlines()
-    return commits
+    return self._execute_git(["log", "--format=%H", "--reverse"]).splitlines()
 
   def _make_empty_commit(self, message):
     self._execute_git(["commit", "--allow-empty", "-m", message])
@@ -187,11 +185,11 @@ class TestSearchRelatedCommits(unittest.TestCase):
     self._make_empty_commit(message)
 
     # Related commit after separator: a hit
-    message = "Patch r" + commit_pos_of_master +""" done
+    message = (f"Patch r{commit_pos_of_master}" + """ done
 
     Review URL: https://codereview.chromium.org/1084243235
 
-    Cr-Commit-Position: refs/heads/master@{#29567}"""
+    Cr-Commit-Position: refs/heads/master@{#29567}""")
     self._make_empty_commit(message)
 
     #Fetch again for an update
@@ -243,10 +241,7 @@ class TestSearchRelatedCommits(unittest.TestCase):
         prettyprint= True,
         separator = None,
         verbose=False)
-    output = []
-    for current_line in search_related_commits.main(options):
-      output.append(current_line)
-
+    output = list(search_related_commits.main(options))
     self.assertIs(len(output), 2, "Not exactly two entries written")
     self.assertTrue(output[0].startswith("+"), "Master entry not marked with +")
     self.assertTrue(output[1].startswith("| "), "Child entry not marked with |")

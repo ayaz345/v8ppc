@@ -25,28 +25,33 @@ def describe_commit(git_working_dir, hash_to_search, one_line=False):
 
 
 def get_followup_commits(git_working_dir, hash_to_search):
-  return git_execute(git_working_dir, ['log',
-                                       '--grep=' + hash_to_search,
-                                       GIT_OPTION_HASH_ONLY,
-                                       'master']).strip().splitlines()
+  return (git_execute(
+      git_working_dir,
+      ['log', f'--grep={hash_to_search}', GIT_OPTION_HASH_ONLY, 'master'],
+  ).strip().splitlines())
 
 def get_merge_commits(git_working_dir, hash_to_search):
   merges = get_related_commits_not_on_master(git_working_dir, hash_to_search)
   false_merges = get_related_commits_not_on_master(
-    git_working_dir, 'Cr-Branched-From: ' + hash_to_search)
+      git_working_dir, f'Cr-Branched-From: {hash_to_search}')
   false_merges = set(false_merges)
   return ([merge_commit for merge_commit in merges
       if merge_commit not in false_merges])
 
 def get_related_commits_not_on_master(git_working_dir, grep_command):
-  commits = git_execute(git_working_dir, ['log',
-                                          '--all',
-                                          '--grep=' + grep_command,
-                                          GIT_OPTION_ONELINE,
-                                          '--decorate',
-                                          '--not',
-                                          'master',
-                                          GIT_OPTION_HASH_ONLY])
+  commits = git_execute(
+      git_working_dir,
+      [
+          'log',
+          '--all',
+          f'--grep={grep_command}',
+          GIT_OPTION_ONELINE,
+          '--decorate',
+          '--not',
+          'master',
+          GIT_OPTION_HASH_ONLY,
+      ],
+  )
   return commits.splitlines()
 
 def get_branches_for_commit(git_working_dir, hash_to_search):
@@ -66,9 +71,7 @@ def get_first_canary(git_working_dir, hash_to_search):
   canaries = ([currentBranch for currentBranch in branches if
     currentBranch.startswith('remotes/origin/chromium/')])
   canaries.sort()
-  if len(canaries) == 0:
-    return 'No Canary coverage'
-  return canaries[0].split('/')[-1]
+  return 'No Canary coverage' if not canaries else canaries[0].split('/')[-1]
 
 def print_analysis(git_working_dir, hash_to_search):
   print '1.) Searching for "' + hash_to_search + '"'

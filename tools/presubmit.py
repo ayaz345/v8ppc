@@ -138,7 +138,7 @@ class FileContentsCache(object):
       try:
         handle = open(file, "r")
         file_sum = md5er(handle.read()).digest()
-        if not file in self.sums or self.sums[file] != file_sum:
+        if file not in self.sums or self.sums[file] != file_sum:
           changed_or_new.append(file)
           self.sums[file] = file_sum
       finally:
@@ -160,9 +160,7 @@ class SourceFileProcessor(object):
     all_files = []
     for file in self.GetPathsToSearch():
       all_files += self.FindFilesIn(join(path, file))
-    if not self.ProcessFiles(all_files, path):
-      return False
-    return True
+    return bool(self.ProcessFiles(all_files, path))
 
   def IgnoreDir(self, name):
     return (name.startswith('.') or
@@ -177,9 +175,9 @@ class SourceFileProcessor(object):
     for (root, dirs, files) in os.walk(path):
       for ignored in [x for x in dirs if self.IgnoreDir(x)]:
         dirs.remove(ignored)
-      for file in files:
-        if not self.IgnoreFile(file) and self.IsRelevant(file):
-          result.append(join(root, file))
+      result.extend(
+          join(root, file) for file in files
+          if not self.IgnoreFile(file) and self.IsRelevant(file))
     return result
 
 
@@ -264,7 +262,7 @@ class SourceProcessor(SourceFileProcessor):
 
   # Overwriting the one in the parent class.
   def FindFilesIn(self, path):
-    if os.path.exists(path+'/.git'):
+    if os.path.exists(f'{path}/.git'):
       output = subprocess.Popen('git ls-files --full-name',
                                 stdout=PIPE, cwd=path, shell=True)
       result = []
@@ -281,10 +279,7 @@ class SourceProcessor(SourceFileProcessor):
     return super(SourceProcessor, self).FindFilesIn(path)
 
   def IsRelevant(self, name):
-    for ext in SourceProcessor.RELEVANT_EXTENSIONS:
-      if name.endswith(ext):
-        return True
-    return False
+    return any(name.endswith(ext) for ext in SourceProcessor.RELEVANT_EXTENSIONS)
 
   def GetPathsToSearch(self):
     return ['.']
@@ -320,7 +315,7 @@ class SourceProcessor(SourceFileProcessor):
   IGNORE_TABS = IGNORE_COPYRIGHTS + ['unicode-test.js', 'html-comments.js']
 
   def EndOfDeclaration(self, line):
-    return line == "}" or line == "};"
+    return line in ["}", "};"]
 
   def StartOfDeclaration(self, line):
     return line.find("//") == 0 or \
@@ -390,7 +385,7 @@ def _CheckStatusFileForDuplicateKeys(filepath):
   comma_space_bracket = re.compile(", *]")
   lines = []
   with open(filepath) as f:
-    for line in f.readlines():
+    for line in f:
       # Skip all-comment lines.
       if line.lstrip().startswith("#"): continue
       # Strip away comments at the end of the line.
@@ -421,7 +416,7 @@ def _CheckStatusFileForDuplicateKeys(filepath):
     keys = {}
     for key, value in pairs:
       if key in keys:
-        print("%s: Error: duplicate key %s" % (filepath, key))
+        print(f"{filepath}: Error: duplicate key {key}")
         status["success"] = False
       keys[key] = True
 
@@ -433,7 +428,7 @@ def CheckStatusFiles(workspace):
   suite_paths = utils.GetSuitePaths(join(workspace, "test"))
   for root in suite_paths:
     suite_path = join(workspace, "test", root)
-    status_file_path = join(suite_path, root + ".status")
+    status_file_path = join(suite_path, f"{root}.status")
     suite = testsuite.TestSuite.LoadTestSuite(suite_path)
     if suite and exists(status_file_path):
       success &= statusfile.PresubmitCheck(status_file_path)

@@ -91,8 +91,7 @@ class RandomDistribution:
     self._random = random.Random(seed)
 
   def Distribute(self, n, m):
-    if n > m:
-      n = m
+    n = min(n, m)
     return self._random.sample(xrange(1, m + 1), n)
 
 
@@ -107,8 +106,7 @@ class SmoothDistribution:
     self._factor2 = factor2
 
   def Distribute(self, n, m):
-    if n > m:
-      n = m
+    n = min(n, m)
     if n <= 1:
       return [ 1 ]
 
@@ -117,7 +115,7 @@ class SmoothDistribution:
     dx = 1.0
     ddx = self._factor1
     dddx = self._factor2
-    for i in range(0, n):
+    for _ in range(0, n):
       result += [ x ]
       x += dx
       dx += ddx
@@ -310,15 +308,14 @@ def Main():
     args_suites = set()
     for arg in args:
       suite = arg.split(os.path.sep)[0]
-      if not suite in args_suites:
+      if suite not in args_suites:
         args_suites.add(suite)
     suite_paths = [ s for s in suite_paths if s in args_suites ]
 
   suites = []
   for root in suite_paths:
-    suite = testsuite.TestSuite.LoadTestSuite(
-        os.path.join(BASE_DIR, "test", root))
-    if suite:
+    if suite := testsuite.TestSuite.LoadTestSuite(
+        os.path.join(BASE_DIR, "test", root)):
       suites.append(suite)
 
   if options.download_data:

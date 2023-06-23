@@ -27,7 +27,7 @@ BUILD_DIR = os.path.join(BASE_DIR, 'out', 'Release')
 
 def abs_line(line):
   """Absolute paths as output by the llvm symbolizer."""
-  return '%s/%s' % (BUILD_DIR, line)
+  return f'{BUILD_DIR}/{line}'
 
 
 #------------------------------------------------------------------------------

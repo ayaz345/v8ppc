@@ -35,7 +35,7 @@ Examples:
 
 def bytecode_offset_generator(perf_stream, bytecode_name):
   skip_until_end_of_chain = False
-  bytecode_symbol = "BytecodeHandler:" + bytecode_name;
+  bytecode_symbol = f"BytecodeHandler:{bytecode_name}";
 
   for line in perf_stream:
     # Lines starting with a "#" are comments, skip them.
@@ -68,7 +68,7 @@ def bytecode_offset_counts(bytecode_offsets):
 
 
 def bytecode_disassembly_generator(ignition_codegen, bytecode_name):
-  name_string = "name = " + bytecode_name
+  name_string = f"name = {bytecode_name}"
   for line in ignition_codegen:
     if line.startswith(name_string):
       break
@@ -154,8 +154,8 @@ def main():
                            "-i", program_options.perf_filename],
                           stdout=subprocess.PIPE)
 
-  v8_root_path = os.path.dirname(__file__) + "/../../"
-  d8_path = "{}/out/{}.debug/d8".format(v8_root_path, program_options.arch)
+  v8_root_path = f"{os.path.dirname(__file__)}/../../"
+  d8_path = f"{v8_root_path}/out/{program_options.arch}.debug/d8"
   d8_codegen = subprocess.Popen([d8_path, "--ignition",
                                  "--trace-ignition-codegen", "-e", "1"],
                                 stdout=subprocess.PIPE)

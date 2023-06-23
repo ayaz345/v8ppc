@@ -64,17 +64,17 @@ def SetEnvironmentAndGetRuntimeDllDirs():
     # values there.
     gyp_defines_dict = gyp.NameValueListToDict(gyp.ShlexEnv('GYP_DEFINES'))
     gyp_defines_dict['windows_sdk_path'] = win_sdk
-    os.environ['GYP_DEFINES'] = ' '.join('%s=%s' % (k, pipes.quote(str(v)))
-        for k, v in gyp_defines_dict.iteritems())
+    os.environ['GYP_DEFINES'] = ' '.join(
+        f'{k}={pipes.quote(str(v))}' for k, v in gyp_defines_dict.iteritems())
     os.environ['WINDOWSSDKDIR'] = win_sdk
     os.environ['WDK_DIR'] = wdk
     # Include the VS runtime in the PATH in case it's not machine-installed.
     runtime_path = os.path.pathsep.join(vs_runtime_dll_dirs)
     os.environ['PATH'] = runtime_path + os.path.pathsep + os.environ['PATH']
   elif sys.platform == 'win32' and not depot_tools_win_toolchain:
-    if not 'GYP_MSVS_OVERRIDE_PATH' in os.environ:
+    if 'GYP_MSVS_OVERRIDE_PATH' not in os.environ:
       os.environ['GYP_MSVS_OVERRIDE_PATH'] = DetectVisualStudioPath()
-    if not 'GYP_MSVS_VERSION' in os.environ:
+    if 'GYP_MSVS_VERSION' not in os.environ:
       os.environ['GYP_MSVS_VERSION'] = GetVisualStudioVersion()
 
   return vs_runtime_dll_dirs
@@ -201,16 +201,16 @@ def _CopyRuntime(target_dir, source_dir, target_cpu, debug):
   directory does exist. Handles VS 2013 and VS 2015."""
   suffix = "d.dll" if debug else ".dll"
   if GetVisualStudioVersion() == '2015':
-    _CopyRuntime2015(target_dir, source_dir, '%s140' + suffix, suffix)
+    _CopyRuntime2015(target_dir, source_dir, f'%s140{suffix}', suffix)
   else:
-    _CopyRuntime2013(target_dir, source_dir, 'msvc%s120' + suffix)
+    _CopyRuntime2013(target_dir, source_dir, f'msvc%s120{suffix}')
 
   # Copy the PGO runtime library to the release directories.
   if not debug and os.environ.get('GYP_MSVS_OVERRIDE_PATH'):
     pgo_x86_runtime_dir = os.path.join(os.environ.get('GYP_MSVS_OVERRIDE_PATH'),
                                         'VC', 'bin')
     pgo_x64_runtime_dir = os.path.join(pgo_x86_runtime_dir, 'amd64')
-    pgo_runtime_dll = 'pgort' + _VersionNumber() + '.dll'
+    pgo_runtime_dll = f'pgort{_VersionNumber()}.dll'
     if target_cpu == "x86":
       source_x86 = os.path.join(pgo_x86_runtime_dir, pgo_runtime_dll)
       if os.path.exists(source_x86):
@@ -221,7 +221,7 @@ def _CopyRuntime(target_dir, source_dir, target_cpu, debug):
         _CopyRuntimeImpl(os.path.join(target_dir, pgo_runtime_dll),
                           source_x64)
     else:
-      raise NotImplementedError("Unexpected target_cpu value:" + target_cpu)
+      raise NotImplementedError(f"Unexpected target_cpu value:{target_cpu}")
 
 
 def CopyVsRuntimeDlls(output_dir, runtime_dirs):

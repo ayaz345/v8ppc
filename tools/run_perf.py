@@ -190,7 +190,7 @@ class Measurement(object):
 
   def ConsumeOutput(self, stdout):
     try:
-      result = re.search(self.results_regexp, stdout, re.M).group(1)
+      result = re.search(self.results_regexp, stdout, re.M)[1]
       self.results.append(str(float(result)))
     except ValueError:
       self.errors.append("Regexp \"%s\" returned a non-numeric for test %s."
@@ -204,7 +204,7 @@ class Measurement(object):
         self.errors.append("Test %s should only run once since a stddev "
                            "is provided by the test." % self.name)
       if self.stddev_regexp:
-        self.stddev = re.search(self.stddev_regexp, stdout, re.M).group(1)
+        self.stddev = re.search(self.stddev_regexp, stdout, re.M)[1]
     except:
       self.errors.append("Regexp \"%s\" didn't match for test %s."
                          % (self.stddev_regexp, self.name))
@@ -303,8 +303,7 @@ def AccumulateGenericResults(graph_names, suite_units, iter_output):
       # The None value is used as a null object to simplify logic.
       continue
     for line in stdout.strip().splitlines():
-      match = GENERIC_RESULTS_RE.match(line)
-      if match:
+      if match := GENERIC_RESULTS_RE.match(line):
         stddev = ""
         graph = match.group(1)
         trace = match.group(2)
@@ -325,8 +324,7 @@ def AccumulateGenericResults(graph_names, suite_units, iter_output):
           results = map(lambda r: str(float(r)), results)
         except ValueError:
           results = []
-          errors = ["Found non-numeric in %s" %
-                    "/".join(graph_names + [graph, trace])]
+          errors = [f'Found non-numeric in {"/".join(graph_names + [graph, trace])}']
 
         trace_result = traces.setdefault(trace, Results([{
           "graphs": graph_names + [graph, trace],
@@ -394,9 +392,9 @@ class GraphConfig(Node):
     # Descrete values (with parent defaults).
     self.binary = suite.get("binary", parent.binary)
     self.run_count = suite.get("run_count", parent.run_count)
-    self.run_count = suite.get("run_count_%s" % arch, self.run_count)
+    self.run_count = suite.get(f"run_count_{arch}", self.run_count)
     self.timeout = suite.get("timeout", parent.timeout)
-    self.timeout = suite.get("timeout_%s" % arch, self.timeout)
+    self.timeout = suite.get(f"timeout_{arch}", self.timeout)
     self.units = suite.get("units", parent.units)
     self.total = suite.get("total", parent.total)
 
@@ -569,8 +567,7 @@ def FlattenRunnables(node, node_cb):
     yield node
   elif isinstance(node, Node):
     for child in node._children:
-      for result in FlattenRunnables(child, node_cb):
-        yield result
+      yield from FlattenRunnables(child, node_cb)
   else:  # pragma: no cover
     raise Exception("Invalid suite configuration.")
 
@@ -714,7 +711,7 @@ class AndroidPlatform(Platform):  # pragma: no cover
     # Only attempt to push files that exist.
     if not os.path.exists(file_on_host):
       if not skip_if_missing:
-        logging.critical('Missing file on host: %s' % file_on_host)
+        logging.critical(f'Missing file on host: {file_on_host}')
       return
 
     # Only push files not yet pushed in one execution.
@@ -729,9 +726,9 @@ class AndroidPlatform(Platform):  # pragma: no cover
     # Success looks like this: "3035 KB/s (12512056 bytes in 4.025s)".
     # Errors look like this: "failed to copy  ... ".
     if output and not re.search('^[0-9]', output.splitlines()[-1]):
-      logging.critical('PUSH FAILED: ' + output)
-    self.adb_wrapper.Shell("mkdir -p %s" % folder_on_device)
-    self.adb_wrapper.Shell("cp %s %s" % (file_on_device_tmp, file_on_device))
+      logging.critical(f'PUSH FAILED: {output}')
+    self.adb_wrapper.Shell(f"mkdir -p {folder_on_device}")
+    self.adb_wrapper.Shell(f"cp {file_on_device_tmp} {file_on_device}")
 
   def _PushExecutable(self, shell_dir, target_dir, binary):
     self._PushFile(shell_dir, binary, target_dir)
@@ -867,8 +864,7 @@ class CustomMachineConfiguration:
 
   @staticmethod
   def GetCPUPathForId(cpu_index):
-    ret = "/sys/devices/system/cpu/cpu"
-    ret += str(cpu_index)
+    ret = f"/sys/devices/system/cpu/cpu{str(cpu_index)}"
     ret += "/cpufreq/scaling_governor"
     return ret
 
